@@ -1,0 +1,67 @@
+- hosts: localhost
+  connection: local
+
+  vars:
+    password: rstudio
+
+  tasks:
+      
+    -   name: Check the version of OS
+        command: hostnamectl
+        register: os_check
+        ignore_errors: yes 
+
+    -   name: Add an apt key - Ubuntu 
+        shell: apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
+        when:
+            - os_check.stdout | regex_search("Ubuntu")
+
+    -   name: Add an apt repo - Ubuntu 18
+        shell: add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu bionic-cran40/'
+        when:
+            - os_check.stdout | regex_search("Ubuntu 18")
+
+    -   name: Add an apt repo - Ubuntu 20
+        shell: add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/'
+        when:
+            - os_check.stdout | regex_search("Ubuntu 20")
+
+    -   name: Install R - Ubuntu
+        apt: 
+            name: r-base
+            update_cache: yes 
+            state: present
+        when:
+            - os_check.stdout | regex_search("Ubuntu")
+
+    -   name: install Epel Release
+        yum:
+            name: epel-release
+            state: latest
+        when:
+            - os_check.stdout | regex_search("CentOS")
+
+    -   name: upgrade all packages
+        yum:
+            name: '*'
+            state: latest
+        when:
+            - os_check.stdout | regex_search("CentOS")
+
+    -   name: Enable Power Tools - centOS 8
+        shell: dnf config-manager --set-enabled PowerTools
+        when: 
+            - os_check.stdout | regex_search("CentOS Linux 8")
+
+    -   name: install R
+        yum:
+            name: R
+            state: present
+        when:
+            - os_check.stdout | regex_search("CentOS")
+
+    -   name: Disable SELinux
+        selinux:
+            state: disabled
+        when:
+            - os_check.stdout | regex_search("CentOS Linux 8")
